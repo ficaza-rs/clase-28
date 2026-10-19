@@ -1,0 +1,40 @@
+# Stack COMPLETO y autónomo para el taller de centralización de logs (sin ARKA, sin Maven).
+# Dos servicios en Java puro que ya emiten logs JSON con traceId y lo propagan por cabecera,
+# más Loki (almacena/consulta) + Promtail (recolecta) + Grafana (el tablero).
+# Levántalo todo con:   docker compose -f compose-observabilidad.yaml up --build
+services:
+  servicio-a:                       # solicitudes: recibe y llama a B pasando el traceId
+    build: { context: ., dockerfile: Dockerfile.servicio-a }
+    container_name: servicio-solicitudes
+    environment:
+      PORT: "8080"
+      SERVICIO_B_URL: "http://servicio-b:8080/eventos"
+    ports: ["8080:8080"]
+    depends_on: [servicio-b]
+
+  servicio-b:                       # notificaciones: consume; los id que terminan en 3 fallan
+    build: { context: ., dockerfile: Dockerfile.servicio-b }
+    container_name: servicio-notificaciones
+    environment:
+      PORT: "8080"
+
+  loki:                             # almacén + consulta de logs (la "sala de control")
+    image: grafana/loki:3.0.0
+    command: -config.file=/etc/loki/local-config.yaml
+    ports: ["3100:3100"]
+
+  promtail:                         # recolecta los logs de TODOS los contenedores y los manda a Loki
+    image: grafana/promtail:3.0.0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./promtail-config.yaml:/etc/promtail/config.yaml
+    command: -config.file=/etc/promtail/config.yaml
+    depends_on: [loki]
+
+  grafana:                          # el TABLERO: en 'Explore' se buscan las trazas por traceId
+    image: grafana/grafana:11.0.0
+    ports: ["3000:3000"]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+    depends_on: [loki]

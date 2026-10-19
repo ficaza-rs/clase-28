@@ -1,0 +1,6 @@
+# servicio-notificaciones (B) — Java puro, modo source-file (sin Maven).
+FROM eclipse-temurin:21-jdk
+WORKDIR /app
+COPY ServicioB.java .
+EXPOSE 8080
+CMD ["java", "ServicioB.java"]

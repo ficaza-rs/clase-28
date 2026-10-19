@@ -1,0 +1,18 @@
+Taller de centralización de logs — montaje autónomo (solo Docker, sin ARKA/Maven).
+
+Levantar todo (2 servicios + Loki + Promtail + Grafana):
+  docker compose -f compose-observabilidad.yaml up --build
+
+Generar tráfico:
+  curl "localhost:8080/solicitudes?id=CAM-002"    # ok   (A -> B, mismo traceId)
+  curl "localhost:8080/solicitudes?id=INC-003"    # falla en B (los id que terminan en 3)
+
+Grafana:  http://localhost:3000  -> Explore -> Loki
+  {servicio="servicio-solicitudes"}                 # logs de A
+  {servicio=~"servicio-.*"} |= "<traceId>"          # una petición en ambos servicios
+  {servicio=~"servicio-.*"} |= "INC-003"            # la fallida; sigue su traceId
+
+Apagar:
+  docker compose -f compose-observabilidad.yaml down
+
+(Los dos servicios Java están verificados. El pipeline Loki/Grafana requiere Docker: ensaya una vez antes de clase.)

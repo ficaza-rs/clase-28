@@ -1,0 +1,6 @@
+# servicio-solicitudes (A) — Java puro, se ejecuta en modo source-file (sin Maven).
+FROM eclipse-temurin:21-jdk
+WORKDIR /app
+COPY ServicioA.java .
+EXPOSE 8080
+CMD ["java", "ServicioA.java"]
